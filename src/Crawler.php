@@ -47,7 +47,11 @@ class Crawler
             throw new \InvalidArgumentException('Invalid google domain');
         }
 
-        $googleUrl = $this->getGoogleUrl($searchTerm, $googleDomain, $countryCode);
+        $googleUrl = "https://$googleDomain/search?q={$searchTerm}&num=100";
+        if (!empty($countryCode)) {
+            $googleUrl .= "&gl={$countryCode}";
+        }
+
         $response = $this->proxy->getHttpResponse($googleUrl);
         $stringResponse = (string) $response->getBody();
         $domCrawler = new DomCrawler($stringResponse);
@@ -105,24 +109,6 @@ class Crawler
         return $this->proxy->parseUrl($url);
     }
 
-    /**
-     * Assembles the Google URL using the previously informed data
-     * 
-     * @param SearchTermInterface $searchTerm
-     * @param string $googleDomain
-     * @param string $countryCode
-     */
-    private function getGoogleUrl(SearchTermInterface $searchTerm, string $googleDomain, string $countryCode): string
-    {
-        $domain = $googleDomain;
-        $url = "https://$domain/search?q={$searchTerm}&num=100";
-        if (!empty($countryCode)) {
-            $url .= "&gl={$countryCode}";
-        }
-
-        return $url;
-    }
-
     private function parseDomElement(DOMElement $result): Result
     {
         $resultCrawler = new DomCrawler($result);
@@ -147,15 +133,14 @@ class Crawler
             throw new InvalidResultException('Result is a google suggestion');
         }
 
-        $googleResult = $this->createResult($resultLink, $descriptionElement);
-        return $googleResult;
+        return $this->createResult($resultLink, $descriptionElement);
     }
 
     private function createGoogleResultList(DomCrawler $domCrawler): DomCrawler
     {
         $googleResultList = $domCrawler->filterXPath('//div[@class="Gx5Zad fP1Qef xpd EtOod pkphOe"]');
         if ($googleResultList->count() === 0) {
-            throw new InvalidGoogleHtmlException('No parseable element found');
+            throw new InvalidGoogleHtmlException('No parsable element found');
         }
 
         return $googleResultList;
